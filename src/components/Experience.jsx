@@ -8,6 +8,9 @@ import MainCamera from "./MainCamera";
 import Floor from "./floor";
 import Roof from "./roof";
 import CustomControls from "./interactions/CustomControls";
+import Clock from "./clock";
+import Key from "./Key";
+import AnimationAndObjects from "./Animation";
 export const Experience = () => {
   return (
     <>
@@ -24,6 +27,9 @@ export const Experience = () => {
       <MainCamera />
       <Floor />
       <Roof />
+      <Clock />
+      <Key />
+      <AnimationAndObjects />
       <CustomControls />
     </>
   );

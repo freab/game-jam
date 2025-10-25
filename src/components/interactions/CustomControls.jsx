@@ -214,7 +214,7 @@ const CustomControls = ({ onCollision }) => {
         setIsDragging(true);
       }
 
-      const rotationSpeed = 0.001;
+      const rotationSpeed = 0.0001;
 
       controlsRef.current.rotationVelocity.x -= deltaMove.x * rotationSpeed;
       controlsRef.current.rotationVelocity.y -= deltaMove.y * rotationSpeed;
