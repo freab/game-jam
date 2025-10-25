@@ -14,7 +14,7 @@ export function MainCamera(props) {
         far={1000}
         near={0.1}
         fov={22.895}
-        position={[-9.704, 5.442, 18.148]}
+        position={[-9.704, 6.442, 18.148]}
         rotation={[0.033, -0.385, 0.012]}
       />
     </group>

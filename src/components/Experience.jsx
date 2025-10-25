@@ -7,6 +7,7 @@ import Wall from "./wall";
 import MainCamera from "./MainCamera";
 import Floor from "./floor";
 import Roof from "./roof";
+import CustomControls from "./interactions/CustomControls";
 export const Experience = () => {
   return (
     <>
@@ -23,6 +24,7 @@ export const Experience = () => {
       <MainCamera />
       <Floor />
       <Roof />
+      <CustomControls />
     </>
   );
 };

@@ -204,52 +204,50 @@ const CustomControls = ({ onCollision }) => {
       if (now - controlsRef.current.lastUpdate < 16) return;
       controlsRef.current.lastUpdate = now;
 
-      if (controlsRef.current.isDragging) {
-        const pos = getEventPosition(event);
-        const deltaMove = {
-          x: pos.x - controlsRef.current.previousPosition.x,
-          y: pos.y - controlsRef.current.previousPosition.y
-        };
+      const pos = getEventPosition(event);
+      const deltaMove = {
+        x: pos.x - controlsRef.current.previousPosition.x,
+        y: pos.y - controlsRef.current.previousPosition.y
+      };
 
-        if (deltaMove.x !== 0 || deltaMove.y !== 0) {
-          setIsDragging(true);
-        }
-
-        const rotationSpeed = 0.002;
-
-        controlsRef.current.rotationVelocity.x -= deltaMove.x * rotationSpeed;
-        controlsRef.current.rotationVelocity.y -= deltaMove.y * rotationSpeed;
-
-        controlsRef.current.rotationVelocity.x *=
-          controlsRef.current.rotationDamping;
-        controlsRef.current.rotationVelocity.y *=
-          controlsRef.current.rotationDamping;
-
-        controlsRef.current.theta += controlsRef.current.rotationVelocity.x;
-        controlsRef.current.phi += controlsRef.current.rotationVelocity.y;
-
-        const maxPhi = Math.PI / 2 - 0.1;
-        controlsRef.current.phi = Math.max(
-          -maxPhi,
-          Math.min(maxPhi, controlsRef.current.phi)
-        );
-
-        camera.rotation.order = "YXZ";
-        camera.rotation.y = controlsRef.current.theta;
-        camera.rotation.x = controlsRef.current.phi;
-        camera.rotation.z = 0;
-
-        if (now - controlsRef.current.lastRotationUpdate > 100) {
-          setCameraRotation([
-            camera.rotation.x,
-            camera.rotation.y,
-            camera.rotation.z
-          ]);
-          controlsRef.current.lastRotationUpdate = now;
-        }
-
-        controlsRef.current.previousPosition = pos;
+      if (deltaMove.x !== 0 || deltaMove.y !== 0) {
+        setIsDragging(true);
       }
+
+      const rotationSpeed = 0.001;
+
+      controlsRef.current.rotationVelocity.x -= deltaMove.x * rotationSpeed;
+      controlsRef.current.rotationVelocity.y -= deltaMove.y * rotationSpeed;
+
+      controlsRef.current.rotationVelocity.x *=
+        controlsRef.current.rotationDamping;
+      controlsRef.current.rotationVelocity.y *=
+        controlsRef.current.rotationDamping;
+
+      controlsRef.current.theta += controlsRef.current.rotationVelocity.x;
+      controlsRef.current.phi += controlsRef.current.rotationVelocity.y;
+
+      const maxPhi = Math.PI / 2 - 0.1;
+      controlsRef.current.phi = Math.max(
+        -maxPhi,
+        Math.min(maxPhi, controlsRef.current.phi)
+      );
+
+      camera.rotation.order = "YXZ";
+      camera.rotation.y = controlsRef.current.theta;
+      camera.rotation.x = controlsRef.current.phi;
+      camera.rotation.z = 0;
+
+      if (now - controlsRef.current.lastRotationUpdate > 100) {
+        setCameraRotation([
+          camera.rotation.x,
+          camera.rotation.y,
+          camera.rotation.z
+        ]);
+        controlsRef.current.lastRotationUpdate = now;
+      }
+
+      controlsRef.current.previousPosition = pos;
     };
 
     const handlePointerUp = () => {
