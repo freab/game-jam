@@ -6,7 +6,7 @@ import Room from "./Room";
 export const Experience = () => {
   return (
     <>
-      <OrbitControls />
+      {/* <OrbitControls /> */}
       <Environment preset="dawn"/>
       {/* <mesh>
         <boxGeometry />
