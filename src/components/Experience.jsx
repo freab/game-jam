@@ -1,13 +1,20 @@
 import { OrbitControls } from "@react-three/drei";
-
+import PC from "./PC";
+import PCScreen from "./screen";
+import PCCamera from "./PCCamera";
+import { Environment } from "@react-three/drei";
 export const Experience = () => {
   return (
     <>
-      <OrbitControls />
-      <mesh>
+      {/* <OrbitControls /> */}
+      <Environment preset="dawn"/>
+      {/* <mesh>
         <boxGeometry />
         <meshNormalMaterial />
-      </mesh>
+      </mesh> */}
+      <PC />
+      <PCScreen />
+      <PCCamera />   
     </>
   );
 };
