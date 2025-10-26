@@ -11,7 +11,6 @@ const CustomControls = ({ onCollision }) => {
     useCameraStore();
   const controlsRef = useRef({
     isDragging: false,
-    previousPosition: { x: 0, y: 0 },
     phi: 0,
     theta: 0,
     keys: {},
@@ -20,20 +19,19 @@ const CustomControls = ({ onCollision }) => {
     lastUpdate: 0,
     isAnimating: false,
     velocity: new Vector3(0, 0, 0),
-    acceleration: 0.03,
-    damping: 0.9,
-    maxSpeed: 0.15,
+    acceleration: 0.05,
+    damping: 0.85,
+    maxSpeed: 0.25,
     zoomLevel: 1,
     minZoom: 0.5,
     maxZoom: 2,
     zoomSensitivity: 0.05,
     lastRotationUpdate: 0,
-    rotationDamping: 0.8,
-    rotationVelocity: { x: 0, y: 0 },
-    arrowAcceleration: 0.015,
-    arrowMaxSpeed: 0.08,
+    rotationSpeed: 0.003, // Adjust this to control rotation sensitivity
     cachedWallObjects: null,
-    lastCacheUpdate: 0
+    lastCacheUpdate: 0,
+    pointerLocked: false,
+    sensitivity: 0.0015 // Mouse sensitivity - slightly reduced for better control
   });
 
   // OPTIMIZED: Cache wall objects to avoid repeated scene traversal
@@ -184,60 +182,61 @@ const CustomControls = ({ onCollision }) => {
     controlsRef.current.phi = euler.x;
     controlsRef.current.theta = euler.y;
 
+    const handlePointerLockChange = () => {
+      controlsRef.current.pointerLocked =
+        document.pointerLockElement === gl.domElement ||
+        document.mozPointerLockElement === gl.domElement ||
+        document.webkitPointerLockElement === gl.domElement;
+    };
+
+    document.addEventListener("pointerlockchange", handlePointerLockChange, false);
+    document.addEventListener("mozpointerlockchange", handlePointerLockChange, false);
+    document.addEventListener("webkitpointerlockchange", handlePointerLockChange, false);
+
     const handlePointerDown = (event) => {
       if (isWalking) return;
 
-      controlsRef.current.isDragging = true;
-      setIsDragging(false);
-      const pos = getEventPosition(event);
-      controlsRef.current.previousPosition = pos;
-
-      const euler = new Euler().setFromQuaternion(camera.quaternion, "YXZ");
-      controlsRef.current.phi = euler.x;
-      controlsRef.current.theta = euler.y;
+      // Request pointer lock on click
+      if (!controlsRef.current.pointerLocked) {
+        gl.domElement.requestPointerLock = gl.domElement.requestPointerLock || 
+          gl.domElement.mozRequestPointerLock || 
+          gl.domElement.webkitRequestPointerLock;
+        
+        if (gl.domElement.requestPointerLock) {
+          gl.domElement.requestPointerLock();
+        }
+      }
     };
 
     const handlePointerMove = (event) => {
-      if (isWalking) return;
+      if (isWalking || !controlsRef.current.pointerLocked) return;
 
       const now = performance.now();
       if (now - controlsRef.current.lastUpdate < 16) return;
       controlsRef.current.lastUpdate = now;
 
-      const pos = getEventPosition(event);
-      const deltaMove = {
-        x: pos.x - controlsRef.current.previousPosition.x,
-        y: pos.y - controlsRef.current.previousPosition.y
-      };
+      // Get movement deltas directly from the event
+      const movementX = event.movementX || 0;
+      const movementY = event.movementY || 0;
 
-      if (deltaMove.x !== 0 || deltaMove.y !== 0) {
-        setIsDragging(true);
-      }
+      // Update rotation based on mouse movement
+      controlsRef.current.theta -= movementX * controlsRef.current.sensitivity;
+      controlsRef.current.phi -= movementY * controlsRef.current.sensitivity;
 
-      const rotationSpeed = 0.0001;
-
-      controlsRef.current.rotationVelocity.x -= deltaMove.x * rotationSpeed;
-      controlsRef.current.rotationVelocity.y -= deltaMove.y * rotationSpeed;
-
-      controlsRef.current.rotationVelocity.x *=
-        controlsRef.current.rotationDamping;
-      controlsRef.current.rotationVelocity.y *=
-        controlsRef.current.rotationDamping;
-
-      controlsRef.current.theta += controlsRef.current.rotationVelocity.x;
-      controlsRef.current.phi += controlsRef.current.rotationVelocity.y;
-
+      // Limit vertical rotation to prevent over-rotation
       const maxPhi = Math.PI / 2 - 0.1;
       controlsRef.current.phi = Math.max(
         -maxPhi,
         Math.min(maxPhi, controlsRef.current.phi)
       );
 
+      // Apply rotation to camera
       camera.rotation.order = "YXZ";
       camera.rotation.y = controlsRef.current.theta;
       camera.rotation.x = controlsRef.current.phi;
       camera.rotation.z = 0;
 
+      // Update camera rotation in store
       if (now - controlsRef.current.lastRotationUpdate > 100) {
         setCameraRotation([
           camera.rotation.x,
@@ -246,8 +245,6 @@ const CustomControls = ({ onCollision }) => {
         ]);
         controlsRef.current.lastRotationUpdate = now;
       }
-
-      controlsRef.current.previousPosition = pos;
     };
 
     const handlePointerUp = () => {
@@ -295,25 +292,43 @@ const CustomControls = ({ onCollision }) => {
           forward.normalize();
         }
 
+        // Calculate right vector for strafing
+        const right = new Vector3();
+        right.crossVectors(forward, new Vector3(0, 1, 0)).normalize();
+
         const targetVelocity = new Vector3();
 
+        // Forward/Backward movement (W/S)
         if (
           controlsRef.current.keys["w"] ||
           controlsRef.current.keys["ArrowUp"]
         ) {
-          const speed = controlsRef.current.keys["ArrowUp"]
-            ? controlsRef.current.arrowAcceleration
-            : controlsRef.current.acceleration;
-          targetVelocity.addScaledVector(forward, speed);
+          targetVelocity.addScaledVector(forward, 1);
         }
         if (
           controlsRef.current.keys["s"] ||
           controlsRef.current.keys["ArrowDown"]
         ) {
-          const speed = controlsRef.current.keys["ArrowDown"]
-            ? controlsRef.current.arrowAcceleration
-            : controlsRef.current.acceleration;
-          targetVelocity.addScaledVector(forward, -speed);
+          targetVelocity.addScaledVector(forward, -1);
+        }
+
+        // Strafing movement (A/D)
+        if (
+          controlsRef.current.keys["a"] ||
+          controlsRef.current.keys["ArrowLeft"]
+        ) {
+          targetVelocity.addScaledVector(right, -1);
+        }
+        if (
+          controlsRef.current.keys["d"] ||
+          controlsRef.current.keys["ArrowRight"]
+        ) {
+          targetVelocity.addScaledVector(right, 1);
+        }
+
+        // Normalize diagonal movement to prevent faster movement and apply acceleration
+        if (targetVelocity.lengthSq() > 0) {
+          targetVelocity.normalize().multiplyScalar(controlsRef.current.acceleration);
         }
 
         controlsRef.current.velocity.multiplyScalar(
@@ -349,27 +364,13 @@ const CustomControls = ({ onCollision }) => {
           }
         }
 
-        // Rotation controls
+        // Rotation controls (Q/E for vertical look, mouse for horizontal)
         if (controlsRef.current.keys["q"]) {
           controlsRef.current.phi += rotationSpeed;
           moved = true;
         }
         if (controlsRef.current.keys["e"]) {
           controlsRef.current.phi -= rotationSpeed;
-          moved = true;
-        }
-        if (
-          controlsRef.current.keys["a"] ||
-          controlsRef.current.keys["ArrowLeft"]
-        ) {
-          controlsRef.current.theta += rotationSpeed;
-          moved = true;
-        }
-        if (
-          controlsRef.current.keys["d"] ||
-          controlsRef.current.keys["ArrowRight"]
-        ) {
-          controlsRef.current.theta -= rotationSpeed;
           moved = true;
         }
 
@@ -474,6 +475,20 @@ const CustomControls = ({ onCollision }) => {
         cancelAnimationFrame(controlsRef.current.animationId);
       }
 
+      // Exit pointer lock when unmounting
+      if (document.exitPointerLock) {
+        document.exitPointerLock();
+      } else if (document.mozExitPointerLock) {
+        document.mozExitPointerLock();
+      } else if (document.webkitExitPointerLock) {
+        document.webkitExitPointerLock();
+      }
+
+      // Remove event listeners
+      document.removeEventListener('pointerlockchange', handlePointerLockChange, false);
+      document.removeEventListener('mozpointerlockchange', handlePointerLockChange, false);
+      document.removeEventListener('webkitpointerlockchange', handlePointerLockChange, false);
+      
       gl.domElement.removeEventListener("mousedown", handlePointerDown);
       gl.domElement.removeEventListener("touchstart", handlePointerDown);
       gl.domElement.removeEventListener("mousemove", handlePointerMove);
@@ -486,6 +501,8 @@ const CustomControls = ({ onCollision }) => {
       window.removeEventListener("keyup", handleKeyUp);
     };
   }, [camera, gl, isWalking, scene]);
+
+  // Cursor management is now handled by CSS in index.css
 
   return null;
 };
