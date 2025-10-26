@@ -48,16 +48,7 @@ export function useRaycast() {
         nameLower.includes("floor") ||
         nameLower.includes("intro_poster") ||
         nameLower.includes("mp") ||
-        nameLower.includes("mfp") ||
-        nameLower.includes("vinyl") ||
-        nameLower.includes("telephone") ||
-        nameLower.includes("pc") ||
-        nameLower.includes("paper") ||
-        nameLower.includes("art") ||
-        nameLower.includes("canvas") ||
-        nameLower.includes("key") ||
-        nameLower.includes("piano") ||
-        nameLower.includes("clock")
+        nameLower.includes("mfp")
       ) {
         interactive.push(obj);
       }

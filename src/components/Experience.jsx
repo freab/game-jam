@@ -8,13 +8,10 @@ import MainCamera from "./MainCamera";
 import Floor from "./floor";
 import Roof from "./roof";
 import CustomControls from "./interactions/CustomControls";
-import { useRaycast } from "./interactions/useRaycast";
 import Clock from "./clock";
 import Key from "./Key";
 import AnimationAndObjects from "./Animation";
 export const Experience = () => {
-  useRaycast();
-
   return (
     <>
       {/* <OrbitControls /> */}
